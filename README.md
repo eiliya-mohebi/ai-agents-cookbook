@@ -24,9 +24,22 @@ For a deep dive into the architecture, setup, and technical details, please see 
 
 ➡️ **[View the Intelli-Agent-FastAPI README](https://github.com/eiliya-mohebi/ai-agents-cookbook/tree/master/Intelli-Agent-FastAPI#readme)**
 
+### ⚙️ ReAct Agent with Structured Output
+
+**ReAct Agent with Structured Output** is a flexible and robust implementation of a ReAct (Reasoning and Acting) agent that ensures reliable, schema-aligned interactions with user-defined tools.
+
+-   **What it is**: A framework for building tool-augmented AI systems that operate on a `Thought -> Action -> Observation` loop for advanced reasoning.
+-   **Core Technologies**: This project uses **OpenAI** for language model capabilities, **Instructor** for structured data extraction, and **Pydantic** for data validation, ensuring type-safe and reliable outputs.
+-   **Why it's useful**: It provides a blueprint for creating dependable AI agents that can perform complex, multi-step tasks by interacting with external tools in a structured and error-resistant manner.
+
+For a deep dive into the architecture, setup, and technical details, please see the project's dedicated README.
+
+➡️ **[View the ReAct-Agent README](https://github.com/eiliya-mohebi/ai-agents-cookbook/tree/master/ReAct-Agent#readme)**
+
 ---
 
 ## About Me
+
 A highly motivated Machine Learning Engineer with a passion for end-to-end AI project lifecycle, from initial model design and training to full-scale deployment. Proven ability to build and deploy end-to-end AI solutions, including creating RESTful APIs and Dockerized systems. Eager to apply expertise in deep learning, LLM Systems, and MLOps to contribute to innovative AI projects.
 
 -   **LinkedIn**: [eiliya-mohebi](https://www.linkedin.com/in/eiliya-mohebi/)

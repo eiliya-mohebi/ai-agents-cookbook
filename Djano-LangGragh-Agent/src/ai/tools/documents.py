@@ -1,106 +1,93 @@
+import requests
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
-from django.db.models import Q
-from documents.models import Document
+
+API_BASE_URL = "http://127.0.0.1:8000/api/docs/"
+
+
+def get_user_id(config: RunnableConfig):
+    configurable = config.get("configurable") or config.get("metadata")
+    user_id = configurable.get("user_id")
+    if user_id is None:
+        raise Exception("Invalid request for user.")
+    return user_id
 
 
 @tool
 def search_query_documents(query: str, limit: int = 5, config: RunnableConfig = {}):
     """
-    Search the most recent LIMIT documents for the current user  with maximum of 25.
-
-    arguments:
-    query: string or lookup search across title or content of document
-    limit: number of results
+    Search the most recent LIMIT documents for the current user.
     """
-
-    if limit > 25:
-        limit = 25
-    configurable = config.get("configurable") or config.get("metadata")
-    user_id = configurable.get("user_id")
-    default_lookups = {
-        "active": True,
+    user_id = get_user_id(config)
+    params = {
+        "search": query,
+        "limit": limit if limit <= 25 else 25,
+        "user_id": user_id,
     }
 
-    qs = (
-        Document.objects.filter(**default_lookups).filter(
-            Q(title__icontains=query) | Q(content__icontains=query)
-        )
-    ).order_by("-created_at")
-    response_data = []
-    for obj in qs[:limit]:
-        response_data.append({"id": obj.id, "title": obj.title})
-    return response_data
+    try:
+        response = requests.get(API_BASE_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+        results = data.get("results", data) if isinstance(data, dict) else data
+
+        return [{"id": item["id"], "title": item["title"]} for item in results]
+    except Exception as e:
+        return f"Error searching documents: {str(e)}"
 
 
 @tool
 def list_documents(limit: int = 5, config: RunnableConfig = {}):
     """
-    List the most recent LIMIT documents for the current user with maximum of 25.
-
-    agruments
-    limit: number of results
+    List the most recent documents for the current user.
     """
-    if limit > 25:
-        limit = 25
-    configurable = config.get("configurable") or config.get("metadata")
-    user_id = configurable.get("user_id")
+    user_id = get_user_id(config)
+    params = {"limit": limit if limit <= 25 else 25, "user_id": user_id}
 
-    qs = Document.objects.filter(active=True).order_by("-created_at")
-    response_data = []
-    for obj in qs[:limit]:
-        response_data.append({"id": obj.id, "title": obj.title})
-    return response_data
+    try:
+        response = requests.get(API_BASE_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        results = data.get("results", data) if isinstance(data, dict) else data
+
+        return [{"id": item["id"], "title": item["title"]} for item in results]
+    except Exception as e:
+        return f"Error listing documents: {str(e)}"
 
 
 @tool
 def get_document(document_id: int, config: RunnableConfig):
     """
-    Get the details of a document for the current user
+    Get the details of a document.
     """
-    configurable = config.get("configurable") or config.get("metadata")
-    user_id = configurable.get("user_id")
-    if user_id is None:
-        raise Exception("Invalid request for user.")
+    user_id = get_user_id(config)
+    params = {"user_id": user_id}
 
     try:
-        obj = Document.objects.get(id=document_id, active=True)
-    except Document.DoesNotExist:
-        raise Exception("Document not found, try again")
-    except:
-        raise Exception("Invalid request for a document detail, try again")
-    response_data = {
-        "id": obj.id,
-        "title": obj.title,
-        "content": obj.content,
-        "created_at": obj.created_at,
-    }
-    return response_data
+        response = requests.get(f"{API_BASE_URL}{document_id}/", params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return "Document not found."
+        return f"Error retrieving document: {str(e)}"
 
 
 @tool
 def create_document(title: str, content: str, config: RunnableConfig):
     """
-    Create a new document to store for the user.
-
-    Arguments are:
-    title: string max characters of 120
-    content: long form text in many paragraphs or pages
+    Create a new document.
     """
-    configurable = config.get("configurable") or config.get("metadata")
-    user_id = configurable.get("user_id")
-    if user_id is None:
-        raise Exception("Invalid request for user.")
-    obj = Document.objects.create(
-        title=title, content=content, owner_id=user_id, active=True
-    )
-    response_data = {
-        "id": obj.id,
-        "title": obj.title,
-        "content": obj.content,
-        "created_at": obj.created_at,
-    }
-    return response_data
+    user_id = get_user_id(config)
+    payload = {"title": title, "content": content, "user_id": user_id}
+
+    try:
+        response = requests.post(API_BASE_URL, json=payload)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        return f"Error creating document: {str(e)}"
 
 
 @tool
@@ -111,60 +98,41 @@ def update_document(
     config: RunnableConfig = {},
 ):
     """
-    Update a document for a user by the document id and related arguments.
-
-    Arguments are:
-    document_id: id of document (required)
-    title: string max characters of 120 (optional)
-    content: long form text in many paragraphs or pages (optional)
+    Update a document.
     """
-    configurable = config.get("configurable") or config.get("metadata")
-    user_id = configurable.get("user_id")
-    if user_id is None:
-        raise Exception("Invalid request for user.")
+    user_id = get_user_id(config)
+    payload = {"user_id": user_id}
+    if title:
+        payload["title"] = title
+    if content:
+        payload["content"] = content
 
     try:
-        obj = Document.objects.get(id=document_id, owner_id=user_id, active=True)
-    except Document.DoesNotExist:
-        raise Exception("Document not found, try again")
-    except:
-        raise Exception("Invalid request for a document detail, try again")
-
-    if title is not None:
-        obj.title = title
-    if content is not None:
-        obj.content = content
-    if title or content:
-        obj.save()
-    response_data = {
-        "id": obj.id,
-        "title": obj.title,
-        "content": obj.content,
-        "created_at": obj.created_at,
-    }
-    return response_data
+        response = requests.patch(f"{API_BASE_URL}{document_id}/", json=payload)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return "Document not found."
+        return f"Error updating document: {str(e)}"
 
 
 @tool
 def delete_document(document_id: int, config: RunnableConfig):
     """
-    Delete the document for the current user by document_id
+    Delete a document.
     """
-    configurable = config.get("configurable") or config.get("metadata")
-    user_id = configurable.get("user_id")
-    if user_id is None:
-        raise Exception("Invalid request for user.")
+    user_id = get_user_id(config)
+    params = {"user_id": user_id}
 
     try:
-        obj = Document.objects.get(id=document_id, active=True)
-    except Document.DoesNotExist:
-        raise Exception("Document not found, try again")
-    except:
-        raise Exception("Invalid request for a document detail, try again")
-
-    obj.delete()
-    response_data = {"message": "success"}
-    return response_data
+        response = requests.delete(f"{API_BASE_URL}{document_id}/", params=params)
+        response.raise_for_status()
+        return {"message": "success"}
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return "Document not found."
+        return f"Error deleting document: {str(e)}"
 
 
 document_tools = [

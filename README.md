@@ -36,6 +36,15 @@ For a deep dive into the architecture, setup, and technical details, please see 
 
 ➡️ **[View the ReAct-Agent README](https://github.com/eiliya-mohebi/ai-agents-cookbook/tree/master/ReAct-Agent#readme)**
 
+### 🚀 Django LangGraph AI Agent
+
+This project is a Django-based backend that integrates a **LangGraph** agent to manage and interact with documents via a REST API. The agent uses OpenAI (via AvalAI) to search, create, and retrieve document information based on natural language prompts.
+
+For a deep dive into the architecture, setup, and technical details, please see the project's dedicated README.
+
+➡️ **[View the Djano-LangGragh-Agent README](https://github.com/eiliya-mohebi/ai-agents-cookbook/tree/master/Djano-LangGragh-Agent#readme)**
+
+
 ---
 
 ## About Me
